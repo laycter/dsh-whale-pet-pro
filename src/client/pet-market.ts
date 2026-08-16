@@ -1,9 +1,10 @@
 /**
- * 桌宠市场数据模型 + 拉取。
+ * 桌宠市场数据模型 + 拉取（多来源仓库）。
  *
- * 前端从桌宠包仓库拉取 `index.json`（桌宠清单），客户端分页 + 虚拟列表展示。
- * 当前用 mock 数据（先做 UI）；仓库建好后把 {@link PET_MARKET_INDEX_URL} 指到
- * 真实 raw URL，`fetchPetMarket` 自动生效。
+ * 前端从**多个**桌宠包仓库拉取各自的 `index.json`（桌宠清单），合并去重后
+ * 客户端分页 + 虚拟列表展示。任何人的仓库只要根目录带 `index.json` 就算一个
+ * 「宠物仓库」，把 URL 加进 {@link PET_MARKET_SOURCES} 即被市场聚合——
+ * 社区桌宠去中心化、源源不断。
  */
 
 import { BORING_IDLE_GIF } from './boring-idle-gif'
@@ -25,23 +26,46 @@ export interface PetMarketIndex {
   pets: PetMarketItem[]
 }
 
-/** 桌宠包仓库 index.json 的 raw URL（已接真实仓库）。 */
-export const PET_MARKET_INDEX_URL = 'https://raw.githubusercontent.com/laycter/whale-pet-assets/main/index.json'
+/**
+ * 桌宠市场来源仓库列表（多来源，鸭鸭拍板 2026-08-16）。
+ * 每个来源 = 一个 GitHub 仓库的 index.json raw URL。社区成员建好自己的
+ * 宠物仓库后，把 URL 加进此数组即可聚合（规范见 docs/pet-repo-spec.md）。
+ */
+export const PET_MARKET_SOURCES: string[] = [
+  'https://raw.githubusercontent.com/laycter/whale-pet-assets/main/index.json',
+]
 
 /**
- * 拉取桌宠清单；URL 未配置时返回 mock 数据（UI 开发阶段）。
+ * 拉取并合并所有来源的桌宠清单（按 id 去重，先到先得）。
+ * 来源全部为空时返回 mock 数据（UI 开发阶段）。
  *
  * 更新机制（鸭鸭钦点）：社区桌宠源源不断，index.json 会持续更新——每次
  * 打开市场都强制拉最新（`cache: 'no-store'` + 时间戳绕过 GitHub raw 的
- * 5 分钟缓存），不做长缓存。清单全量拉取（桌宠元数据很小，几百个也就
- * 几十 KB），客户端分页 + 虚拟列表展示，数量再多也不卡。
+ * 5 分钟缓存）。清单全量拉取（元数据小），客户端分页 + 虚拟列表展示。
  */
 export async function fetchPetMarket(): Promise<PetMarketIndex> {
-  if (PET_MARKET_INDEX_URL.length === 0) return { pets: MOCK_PETS }
-  const url = `${PET_MARKET_INDEX_URL}?t=${Date.now()}`
-  const res = await fetch(url, { cache: 'no-store' })
-  if (!res.ok) throw new Error(`pet market fetch failed: ${res.status}`)
-  return res.json() as Promise<PetMarketIndex>
+  if (PET_MARKET_SOURCES.length === 0) return { pets: MOCK_PETS }
+  const results = await Promise.allSettled(
+    PET_MARKET_SOURCES.map(async (source) => {
+      const url = `${source}?t=${Date.now()}`
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`pet market fetch failed: ${res.status} (${source})`)
+      return (await res.json()) as PetMarketIndex
+    }),
+  )
+  // 合并去重：单个来源失败不影响其它来源（跳过失败源）。
+  const pets: PetMarketItem[] = []
+  const seen = new Set<string>()
+  for (const result of results) {
+    if (result.status !== 'fulfilled') continue
+    for (const pet of result.value.pets) {
+      if (pet && typeof pet.id === 'string' && !seen.has(pet.id)) {
+        seen.add(pet.id)
+        pets.push(pet)
+      }
+    }
+  }
+  return { pets }
 }
 
 // --- mock 数据（UI 开发用，仓库建好后删除或替换） ---
