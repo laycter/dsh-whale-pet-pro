@@ -461,9 +461,6 @@ class Win32Handle implements WindowHandle {
   private readonly bf: any
   private readonly dibView: Uint8Array
   private readonly bgraBuf: Uint8Array
-  /** 悬停轮询：光标位置 / 窗口矩形（复用，不每次 alloc）。 */
-  private readonly cursorPoint: any
-  private readonly cursorRect: any
 
   constructor(
     private readonly bindings: Win32Bindings,
@@ -475,11 +472,9 @@ class Win32Handle implements WindowHandle {
     private readonly msg: any,
     private readonly workArea: WorkArea | undefined,
   ) {
-    const { koffi, POINT, SIZE, BLENDFUNCTION, RECT } = bindings
+    const { koffi, POINT, SIZE, BLENDFUNCTION } = bindings
     this.ptSrc = koffi.alloc(POINT, 1)
     koffi.encode(this.ptSrc, POINT, { x: 0, y: 0 })
-    this.cursorPoint = koffi.alloc(POINT, 1)
-    this.cursorRect = koffi.alloc(RECT, 1)
     this.sz = koffi.alloc(SIZE, 1)
     this.bf = koffi.alloc(BLENDFUNCTION, 1)
     koffi.encode(this.bf, BLENDFUNCTION, {
@@ -517,16 +512,6 @@ class Win32Handle implements WindowHandle {
 
   getWorkArea(): WorkArea | undefined {
     return this.workArea
-  }
-
-  isPointInside(): boolean {
-    if (this.destroyed) return false
-    const { koffi, POINT, RECT, getCursorPos, getWindowRect } = this.bindings
-    if (getCursorPos(this.cursorPoint) === 0) return false
-    const p = koffi.decode(this.cursorPoint, POINT)
-    if (getWindowRect(this.hwnd, this.cursorRect) === 0) return false
-    const r = koffi.decode(this.cursorRect, RECT)
-    return p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom
   }
 
   setAlwaysOnTop(value: boolean): void {

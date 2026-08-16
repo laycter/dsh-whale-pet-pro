@@ -107,31 +107,6 @@ export function flipHorizontal(frame: PetFrame): PetFrame {
   return { width, height, rgba: out }
 }
 
-/**
- * 生成一个空心矩形边框帧（悬停时可视化宠物活动范围用）。
- * 四边厚度 `thickness`、颜色 `color`（RGBA），中间全透明。
- */
-export function borderFrame(
-  width: number,
-  height: number,
-  thickness: number,
-  color: readonly [number, number, number, number],
-): PetFrame {
-  const rgba = new Uint8Array(width * height * 4)
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const isBorder = x < thickness || x >= width - thickness || y < thickness || y >= height - thickness
-      if (!isBorder) continue
-      const i = (y * width + x) * 4
-      rgba[i] = color[0]
-      rgba[i + 1] = color[1]
-      rgba[i + 2] = color[2]
-      rgba[i + 3] = color[3]
-    }
-  }
-  return { width, height, rgba }
-}
-
 /** The Codex contract's fixed base dimensions. */
 export const BASE_CELL = { width: CELL_WIDTH, height: CELL_HEIGHT } as const
 

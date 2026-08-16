@@ -49,8 +49,6 @@ export interface WindowHandle {
   move(x: number, y: number): void
   /** 屏幕工作区（排除任务栏）；不支持时返回 undefined（不钳制）。 */
   getWorkArea(): WorkArea | undefined
-  /** 鼠标光标当前是否在本窗口矩形内（悬停轮询用）。 */
-  isPointInside(): boolean
   setAlwaysOnTop(value: boolean): void
   show(): void
   hide(): void

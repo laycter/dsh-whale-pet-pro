@@ -16,7 +16,7 @@ import { resolve } from 'node:path'
 import type { CodexPetState, SemanticState } from '../core/types'
 import { SEMANTIC_STATE_TO_TRIGGER, SEMANTIC_TO_CODEX } from '../core/types'
 import { AnimationController, type AnimationClock } from './AnimationController'
-import { fitFrame, flipHorizontal, borderFrame, type AtlasBuffer, type PetFrame } from './FrameDecoder'
+import { fitFrame, flipHorizontal, type AtlasBuffer, type PetFrame } from './FrameDecoder'
 import type { PetManifest } from './codex-pet/PetContract'
 import type { DirFrameTable } from './petdir/PetDirLoader'
 import { AudioPlayer } from './audio/AudioPlayer'
@@ -64,10 +64,6 @@ export interface PetWindowOptions {
 const BASE_WIDTH = 192
 const BASE_HEIGHT = 208
 const DEFAULT_POSITION = { x: 40, y: 40 } as const
-
-/** 悬停时活动范围边框的颜色（浅蓝半透明）与线宽。 */
-const BORDER_COLOR: readonly [number, number, number, number] = [90, 170, 255, 120]
-const BORDER_THICKNESS = 3
 
 /** 自主走动参数：tick 间隔（平滑缓移）。 */
 const WALK_TICK_MS = 50
@@ -166,14 +162,6 @@ export class PetWindow implements BehaviorExecutor {
   private walkStepsLeft = 0
   private walkDx = 0
   private walkDy = 0
-  /** 悬停时显示的活动范围边框窗口（懒创建）。 */
-  private borderHandle: WindowHandle | undefined
-  /** 边框是否应当显示（防异步创建竞态：快速移开后窗口才建好却仍显示）。 */
-  private borderWanted = false
-  /** 边框窗口创建中（防并发多次 create）。 */
-  private borderCreating = false
-  /** 边框显示期间的鼠标位置轮询定时器（不依赖 WM_NCMOUSELEAVE）。 */
-  private borderCheckTimer: unknown | undefined
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
   private anchorX: number
   private anchorY: number
@@ -320,11 +308,9 @@ export class PetWindow implements BehaviorExecutor {
       },
       onHover: () => {
         this.onHover?.()
-        void this.showBorder()
       },
       onUnhover: () => {
         this.onUnhover?.()
-        this.hideBorder()
       },
       onClose: () => {
         this.onClose?.()
@@ -429,8 +415,6 @@ export class PetWindow implements BehaviorExecutor {
     this.anchorX = this.currentX
     this.anchorY = this.currentY
     this.applyState(this.semantic)
-    // 拖拽后边框窗口位置跟着新锚点走。
-    this.updateBorderPosition()
   }
 
   /** 回到初始位置（右键「回到初始位置」）：移窗口 + 更新锚点 + 持久化。 */
@@ -444,7 +428,6 @@ export class PetWindow implements BehaviorExecutor {
     this.anchorY = this.initialY
     this.handle?.move(this.currentX, this.currentY)
     this.onDrag?.(this.currentX, this.currentY) // 持久化回位后的位置
-    this.updateBorderPosition()
   }
 
   /** Show or hide the pet without disposing it. */
@@ -580,83 +563,7 @@ export class PetWindow implements BehaviorExecutor {
     }
   }
 
-  /** 悬停时显示活动范围边框（懒创建一次，之后只 show + 更新位置，不做实时跟随）。 */
-  private async showBorder(): Promise<void> {
-    if (this.destroyed) return
-    this.borderWanted = true
-    const drift = this.walkDriftRange()
-    if (!this.borderHandle) {
-      if (this.borderCreating) return // 已在创建，等下次
-      this.borderCreating = true
-      const width = Math.max(8, Math.round(drift.x * 2))
-      const height = Math.max(8, Math.round(drift.y * 2))
-      try {
-        const handle = await this.backend.create({
-          width,
-          height,
-          x: Math.round(this.currentX - drift.x),
-          y: Math.round(this.currentY - drift.y),
-          alwaysOnTop: true,
-          clickThrough: true, // 穿透，不挡鼠标
-        })
-        this.borderCreating = false
-        // 创建期间鼠标已移开：销毁刚建的窗口，不显示。
-        if (this.destroyed || !this.borderWanted) {
-          try { handle.destroy() } catch { /* no-op */ }
-          return
-        }
-        this.borderHandle = handle
-        this.borderHandle.present(borderFrame(width, height, BORDER_THICKNESS, BORDER_COLOR))
-      } catch {
-        this.borderCreating = false
-        return
-      }
-    } else {
-      this.updateBorderPosition()
-    }
-    if (this.borderWanted) {
-      this.borderHandle.show()
-      this.startBorderCheck()
-    }
-  }
-
-  /** 边框窗口锁定宠物当前位置：中心 = 宠物当前位置（走动/拖拽/回位时同步）。 */
-  private updateBorderPosition(): void {
-    if (!this.borderHandle) return
-    const drift = this.walkDriftRange()
-    this.borderHandle.move(Math.round(this.currentX - drift.x), Math.round(this.currentY - drift.y))
-  }
-
-  /** 鼠标移开时隐藏活动范围边框。 */
-  private hideBorder(): void {
-    this.borderWanted = false
-    this.stopBorderCheck()
-    this.borderHandle?.hide()
-  }
-
-  /**
-   * 鼠标位置轮询：每 ~200ms 检查鼠标是否还在宠物窗口内，不在则自动隐藏边框。
-   * 不依赖 WM_NCMOUSELEAVE（它可能因拖拽 capture / 边框窗口干扰而不触发）。
-   */
-  private startBorderCheck(): void {
-    this.stopBorderCheck()
-    this.borderCheckTimer = this.clock.setTimeout(() => {
-      this.borderCheckTimer = undefined
-      if (this.destroyed || !this.borderWanted) return
-      if (this.handle && !this.handle.isPointInside()) {
-        this.hideBorder()
-        return
-      }
-      this.startBorderCheck()
-    }, 200)
-  }
-
-  private stopBorderCheck(): void {
-    if (this.borderCheckTimer !== undefined) {
-      this.clock.clearTimeout(this.borderCheckTimer)
-      this.borderCheckTimer = undefined
-    }
-  }
+  /** 悬停时显示活动范围边框（已移除——鸭鸭拍板删除边框功能）。 */
 
   private scheduleWalkStep(): void {
     this.walkTimer = this.clock.setTimeout(() => {
@@ -734,7 +641,6 @@ export class PetWindow implements BehaviorExecutor {
 
   private teardownWindow(): void {
     this.cancelWalk()
-    this.stopBorderCheck()
     this.controller?.dispose()
     this.controller = undefined
     this.audio?.stop()
@@ -744,12 +650,6 @@ export class PetWindow implements BehaviorExecutor {
       // Best-effort native teardown.
     }
     this.handle = undefined
-    try {
-      this.borderHandle?.destroy()
-    } catch {
-      // Best-effort native teardown.
-    }
-    this.borderHandle = undefined
   }
 
   async destroy(): Promise<void> {
