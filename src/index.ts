@@ -101,6 +101,8 @@ export function apply(ctx: Context, config: PetConfig): void {
       petScale: config.petScale,
       petId: config.petId,
       hideWhenIdle: config.hideWhenIdle,
+      initialX: -1,
+      initialY: -1,
       availablePets: [],
     }
     // The catalog is a scan-time fact, not a user setting: remember it here so
@@ -208,8 +210,10 @@ export function apply(ctx: Context, config: PetConfig): void {
           animationEnabled: config.animationEnabled,
           idleFrequencySec: config.idleFrequencySec,
           clickThrough: config.clickThrough,
-          // 收起再召唤自动回位：位置固定用初始位置，不读持久化坐标。
-          position: INITIAL_POSITION,
+          // 宠物初始位置：召唤按钮屏幕坐标（client 端写入）；未设置用默认。
+          position: (currentSettings.initialX >= 0 && currentSettings.initialY >= 0)
+            ? { x: currentSettings.initialX, y: currentSettings.initialY }
+            : INITIAL_POSITION,
           onDrag: (x, y) => savePosition({ x, y }),
           onHover: () => { window?.playJump() },
           onUnhover: () => { window?.endHover() },

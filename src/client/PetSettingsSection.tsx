@@ -72,8 +72,14 @@ export function PetSettingsSection(props: PetSettingsSectionProps) {
           className={css.summon}
           aria-pressed={active}
           disabled={!ready}
-          onClick={() => {
-            try { props.toggleEnabled() } catch { /* 下次点击重试 */ }
+          onClick={(event) => {
+            try {
+              // 记录召唤按钮的屏幕坐标，宠物在按钮处出现。
+              const rect = event.currentTarget.getBoundingClientRect()
+              const x = window.screenX + rect.left + rect.width / 2
+              const y = window.screenY + rect.top + rect.height / 2
+              props.summonAt(x, y)
+            } catch { /* 下次点击重试 */ }
           }}
         >
           <img className={css.summonBadge} src={PET_BADGE_DATA_URL} alt="" aria-hidden="true" />

@@ -34,6 +34,8 @@ export interface DesktopPetSettings {
   petScale?: number
   petId?: string
   hideWhenIdle?: boolean
+  initialX?: number
+  initialY?: number
   availablePets?: AvailablePet[]
 }
 
@@ -78,6 +80,10 @@ export interface DesktopPetCardFace {
    * 直接切换宠物（settings 行下拉用；同样不走 staged 表单）。
    */
   setPet: (petId: string) => void
+  /**
+   * 召唤并记录召唤按钮的屏幕坐标（宠物初始出现位置）。
+   */
+  summonAt: (x: number, y: number) => void
   hooks: {
     desktopPet: SnapshotStore<DesktopPetCardState>
   }
@@ -91,6 +97,8 @@ interface Section {
   petScale?: number
   petId?: string
   hideWhenIdle?: boolean
+  initialX?: number
+  initialY?: number
   availablePets?: AvailablePet[]
 }
 
@@ -100,6 +108,8 @@ interface ResolvedSection {
   petScale: number
   petId: string
   hideWhenIdle: boolean
+  initialX: number
+  initialY: number
   availablePets: AvailablePet[]
 }
 
@@ -119,6 +129,8 @@ function effective(section: unknown): ResolvedSection {
     petScale,
     petId: typeof value.petId === 'string' && value.petId.length > 0 ? value.petId : 'text',
     hideWhenIdle: typeof value.hideWhenIdle === 'boolean' ? value.hideWhenIdle : false,
+    initialX: typeof value.initialX === 'number' ? value.initialX : -1,
+    initialY: typeof value.initialY === 'number' ? value.initialY : -1,
     availablePets: availablePets.length > 0 ? availablePets : [FALLBACK_PET],
   }
 }
@@ -228,6 +240,17 @@ export class DesktopPetCardController {
       },
       setPet: (petId: string) => {
         void this.scope.set('petId', petId).catch(() => {
+          this.failed = true
+          this.store.set(this.projection())
+        })
+      },
+      summonAt: (x, y) => {
+        // 记录召唤按钮屏幕坐标（宠物初始位置），再切 enabled 召唤。
+        const snapshot = this.scope.getSnapshot()
+        const section = effective(snapshot.value)
+        void this.scope.set('initialX', Math.round(x)).catch(() => {})
+        void this.scope.set('initialY', Math.round(y)).catch(() => {})
+        void this.scope.set('enabled', !section.enabled).catch(() => {
           this.failed = true
           this.store.set(this.projection())
         })

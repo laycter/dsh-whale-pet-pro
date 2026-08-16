@@ -36,6 +36,12 @@ export interface PetSettings {
   /** Hide the pet while no task is running; show it again on activity. */
   hideWhenIdle: boolean
   /**
+   * 召唤按钮的屏幕坐标（client 端点召唤时写入）；宠物初始出现位置。
+   * -1 表示未设置（用默认位置）。
+   */
+  initialX: number
+  initialY: number
+  /**
    * The pets discovered under `assets/pets/` at startup. Read-only from the
    * client's perspective: the host always replaces it with its own scan, so a
    * user-layer value cannot shadow the directory facts.
@@ -48,6 +54,8 @@ export const PetSettingsSchema: z<PetSettings> = z.object({
   petScale: z.number().step(0.25).min(0.5).max(4).default(1),
   petId: z.string().default('text'),
   hideWhenIdle: z.boolean().default(false),
+  initialX: z.number().default(-1),
+  initialY: z.number().default(-1),
   availablePets: z.array(z.object({
     id: z.string(),
     displayName: z.string(),
