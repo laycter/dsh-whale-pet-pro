@@ -16,7 +16,7 @@ import { resolve } from 'node:path'
 import type { CodexPetState, SemanticState } from '../core/types'
 import { SEMANTIC_STATE_TO_TRIGGER, SEMANTIC_TO_CODEX } from '../core/types'
 import { AnimationController, type AnimationClock } from './AnimationController'
-import { fitFrame, flipHorizontal, type AtlasBuffer, type PetFrame } from './FrameDecoder'
+import { fitFrame, flipHorizontal, borderFrame, type AtlasBuffer, type PetFrame } from './FrameDecoder'
 import type { PetManifest } from './codex-pet/PetContract'
 import type { DirFrameTable } from './petdir/PetDirLoader'
 import { AudioPlayer } from './audio/AudioPlayer'
@@ -64,6 +64,10 @@ export interface PetWindowOptions {
 const BASE_WIDTH = 192
 const BASE_HEIGHT = 208
 const DEFAULT_POSITION = { x: 40, y: 40 } as const
+
+/** 悬停时活动范围边框的颜色（浅蓝半透明）与线宽。 */
+const BORDER_COLOR: readonly [number, number, number, number] = [90, 170, 255, 120]
+const BORDER_THICKNESS = 3
 
 /** 自主走动参数：tick 间隔（平滑缓移）。 */
 const WALK_TICK_MS = 50
@@ -162,6 +166,8 @@ export class PetWindow implements BehaviorExecutor {
   private walkStepsLeft = 0
   private walkDx = 0
   private walkDy = 0
+  /** 悬停时显示的活动范围边框窗口（懒创建）。 */
+  private borderHandle: WindowHandle | undefined
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
   private anchorX: number
   private anchorY: number
@@ -303,9 +309,11 @@ export class PetWindow implements BehaviorExecutor {
       },
       onHover: () => {
         this.onHover?.()
+        void this.showBorder()
       },
       onUnhover: () => {
         this.onUnhover?.()
+        this.hideBorder()
       },
       onClose: () => {
         this.onClose?.()
@@ -539,6 +547,39 @@ export class PetWindow implements BehaviorExecutor {
     }
   }
 
+  /** 悬停时显示活动范围边框（懒创建边框窗口，点击穿透不挡鼠标）。 */
+  private async showBorder(): Promise<void> {
+    if (this.destroyed) return
+    const drift = this.walkDriftRange()
+    if (!this.borderHandle) {
+      const width = Math.max(8, Math.round(drift.x * 2))
+      const height = Math.max(8, Math.round(drift.y * 2))
+      try {
+        this.borderHandle = await this.backend.create({
+          width,
+          height,
+          x: Math.round(this.anchorX - drift.x),
+          y: Math.round(this.anchorY - drift.y),
+          alwaysOnTop: true,
+          clickThrough: true, // 穿透，不挡鼠标
+        })
+        this.borderHandle.present(borderFrame(width, height, BORDER_THICKNESS, BORDER_COLOR))
+      } catch {
+        this.borderHandle = undefined
+        return
+      }
+    } else {
+      // 锚点可能变了（拖拽后），更新边框位置。
+      this.borderHandle.move(Math.round(this.anchorX - drift.x), Math.round(this.anchorY - drift.y))
+    }
+    this.borderHandle.show()
+  }
+
+  /** 鼠标移开时隐藏活动范围边框。 */
+  private hideBorder(): void {
+    this.borderHandle?.hide()
+  }
+
   private scheduleWalkStep(): void {
     this.walkTimer = this.clock.setTimeout(() => {
       this.walkTimer = undefined
@@ -624,6 +665,12 @@ export class PetWindow implements BehaviorExecutor {
       // Best-effort native teardown.
     }
     this.handle = undefined
+    try {
+      this.borderHandle?.destroy()
+    } catch {
+      // Best-effort native teardown.
+    }
+    this.borderHandle = undefined
   }
 
   async destroy(): Promise<void> {

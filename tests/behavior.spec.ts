@@ -4,7 +4,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { flipHorizontal, type PetFrame } from '../src/renderer/FrameDecoder'
+import { flipHorizontal, borderFrame, type PetFrame } from '../src/renderer/FrameDecoder'
 import { MoodSystem } from '../src/behavior/MoodSystem'
 import { BehaviorAI, QUIET_TUNING } from '../src/behavior/BehaviorAI'
 import type { BehaviorClock, BehaviorExecutor } from '../src/behavior/BehaviorTypes'
@@ -75,6 +75,20 @@ describe('flipHorizontal', () => {
     }
     const twice = flipHorizontal(flipHorizontal(frame))
     expect(Array.from(twice.rgba)).toEqual(Array.from(frame.rgba))
+  })
+})
+
+describe('borderFrame', () => {
+  it('draws a hollow rectangle border with a transparent center', () => {
+    const frame = borderFrame(5, 5, 1, [255, 0, 0, 255])
+    // 左上角 (0,0) 是边框
+    expect(Array.from(frame.rgba.slice(0, 4))).toEqual([255, 0, 0, 255])
+    // 右下角 (4,4) 是边框
+    const br = (4 * 5 + 4) * 4
+    expect(Array.from(frame.rgba.slice(br, br + 4))).toEqual([255, 0, 0, 255])
+    // 中心 (2,2) 透明
+    const center = (2 * 5 + 2) * 4
+    expect(Array.from(frame.rgba.slice(center, center + 4))).toEqual([0, 0, 0, 0])
   })
 })
 
