@@ -20,7 +20,7 @@ import { fitFrame, flipHorizontal, type AtlasBuffer, type PetFrame } from './Fra
 import type { PetManifest } from './codex-pet/PetContract'
 import type { DirFrameTable } from './petdir/PetDirLoader'
 import { AudioPlayer } from './audio/AudioPlayer'
-import type { BehaviorExecutor } from '../behavior/BehaviorTypes'
+import type { BehaviorExecutor, WalkDirection } from '../behavior/BehaviorTypes'
 import type { WindowBackend, WindowBackendOptions, WindowHandle } from './backend/WindowBackend'
 
 export interface PetWindowOptions {
@@ -65,10 +65,23 @@ const BASE_WIDTH = 192
 const BASE_HEIGHT = 208
 const DEFAULT_POSITION = { x: 40, y: 40 } as const
 
-/** 自主走动参数：每步移动像素 + 步间隔 + 锚点最大漂移（小范围溜达）。 */
-const WALK_STEP_PX = 30
-const WALK_STEP_MS = 150
+/** 自主走动参数：tick 间隔（平滑缓移）+ 锚点最大漂移（小范围溜达）。 */
+const WALK_TICK_MS = 50
 const WALK_MAX_DRIFT = 150
+
+/**
+ * 方向 → 每 tick 位移（px）。速度档：左右正常(6) / 斜着中慢(4+4) / 上下最慢(2)。
+ */
+const WALK_DIRECTION_STEP: Record<WalkDirection, { dx: number; dy: number }> = {
+  'left': { dx: -6, dy: 0 },
+  'right': { dx: 6, dy: 0 },
+  'up': { dx: 0, dy: -2 },
+  'down': { dx: 0, dy: 2 },
+  'up-left': { dx: -4, dy: -4 },
+  'up-right': { dx: 4, dy: -4 },
+  'down-left': { dx: -4, dy: 4 },
+  'down-right': { dx: 4, dy: 4 },
+}
 
 /**
  * whale-pet-pro 扩展：默认 Codex 姿势 → 目录动作映射（面向 dsh-client-ui-pet
@@ -139,10 +152,11 @@ export class PetWindow implements BehaviorExecutor {
   private dragging = false
   /** 自主走动：是否镜像（向左走 true）。 */
   private mirrored = false
-  /** 自主走动：步进定时器 / 剩余步数 / 方向。 */
+  /** 自主走动：步进定时器 / 剩余 tick 数 / 每 tick 位移分量。 */
   private walkTimer: unknown | undefined
   private walkStepsLeft = 0
-  private walkDirection: 'left' | 'right' = 'right'
+  private walkDx = 0
+  private walkDy = 0
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
   private anchorX: number
   private anchorY: number
@@ -483,20 +497,23 @@ export class PetWindow implements BehaviorExecutor {
   }
 
   /**
-   * 自主走动：朝 direction 走 steps 步（walk 动画 + 逐步移动窗口），
-   * 锚点 ±WALK_MAX_DRIFT 内小范围溜达，越界反向。走完回 idle。
+   * 自主走动：朝 direction 平滑平移 steps 个 tick（walk 动画 + 逐步移动窗口）。
+   * 速度档：左右正常 / 斜着中慢 / 上下最慢（见 WALK_DIRECTION_STEP）。
+   * 锚点 ±WALK_MAX_DRIFT 内小范围溜达，越界分量反向；每步钳到屏幕内。走完回 idle。
    */
-  walk(direction: 'left' | 'right', steps: number): void {
+  walk(direction: WalkDirection, steps: number): void {
     if (this.destroyed || !this.controller || !this.handle) return
     this.cancelWalk()
-    // 锚点约束：朝 direction 走 steps 步会否超出 ±WALK_MAX_DRIFT，超出则反向。
-    const dx = (direction === 'left' ? -1 : 1) * WALK_STEP_PX * steps
-    if (Math.abs(this.currentX + dx - this.anchorX) > WALK_MAX_DRIFT) {
-      direction = direction === 'left' ? 'right' : 'left'
-    }
-    this.walkDirection = direction
+    const step = WALK_DIRECTION_STEP[direction]
+    let dx = step.dx
+    let dy = step.dy
+    // 锚点约束：某分量朝该方向走 steps 个 tick 会否超出 ±WALK_MAX_DRIFT，超出则反转该分量。
+    if (Math.abs(this.currentX + dx * steps - this.anchorX) > WALK_MAX_DRIFT) dx = -dx
+    if (Math.abs(this.currentY + dy * steps - this.anchorY) > WALK_MAX_DRIFT) dy = -dy
+    this.walkDx = dx
+    this.walkDy = dy
     this.walkStepsLeft = steps
-    this.mirrored = direction === 'left'
+    this.mirrored = dx < 0 // 向左分量 → 镜像
     this.controller.setAction('walk')
     this.scheduleWalkStep()
   }
@@ -506,14 +523,14 @@ export class PetWindow implements BehaviorExecutor {
       this.walkTimer = undefined
       if (this.destroyed || !this.handle) return
       if (this.walkStepsLeft <= 0) { this.finishWalk(); return }
-      const dx = this.walkDirection === 'left' ? -WALK_STEP_PX : WALK_STEP_PX
-      this.currentX += dx
+      this.currentX += this.walkDx
+      this.currentY += this.walkDy
       this.clampToWorkArea() // 不跑出屏幕
       this.handle.move(this.currentX, this.currentY)
       this.onDrag?.(this.currentX, this.currentY) // 持久化新位置
       this.walkStepsLeft--
       this.scheduleWalkStep()
-    }, WALK_STEP_MS)
+    }, WALK_TICK_MS)
   }
 
   /** 把窗口位置钳制到屏幕工作区内（自主走动不跑出屏幕）。 */
@@ -531,7 +548,8 @@ export class PetWindow implements BehaviorExecutor {
   private finishWalk(): void {
     this.mirrored = false
     this.walkStepsLeft = 0
-    this.walkDirection = 'right'
+    this.walkDx = 0
+    this.walkDy = 0
     // 走完恢复 idle 动作。
     const action = this.actionForSemantic('IDLE')
     if (this.controller) {

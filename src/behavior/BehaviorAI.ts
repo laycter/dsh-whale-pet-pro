@@ -9,6 +9,7 @@
  */
 
 import type { SemanticState } from '../core/types'
+import { WALK_DIRECTIONS } from './BehaviorTypes'
 import type { BehaviorClock, BehaviorExecutor } from './BehaviorTypes'
 import type { MoodSystem, MoodLevel } from './MoodSystem'
 
@@ -144,8 +145,8 @@ export class BehaviorAI {
     if (kind === 'yawn' || kind === 'happy') {
       this.executor.playAction(kind)
     } else {
-      const direction = this.random() < 0.5 ? 'left' : 'right'
-      const steps = 3 + Math.floor(this.random() * 6) // 3~8 步
+      const direction = WALK_DIRECTIONS[Math.floor(this.random() * WALK_DIRECTIONS.length)]
+      const steps = 20 + Math.floor(this.random() * 21) // 20~40 tick（约 1~2 秒的溜达）
       this.executor.walk(direction, steps)
     }
   }

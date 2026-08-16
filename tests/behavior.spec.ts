@@ -149,16 +149,18 @@ describe('BehaviorAI', () => {
     expect(calls).toContain('action:yawn')
   })
 
-  it('walks right 7 steps when random=0.7 in neutral mood', () => {
+  it('walks in a random 8-direction with tick steps when random=0.7 in neutral mood', () => {
     const { clock, tick } = fakeClock()
     const mood = new MoodSystem({ clock, initial: 60 }) // neutral
     const { executor, calls } = fakeExecutor(true)
-    // neutral 概率：r=0.7 > 0.55 → walk；direction 0.7≥0.5 → right；steps 3+⌊0.7×6⌋=7
+    // neutral 概率：r=0.7 > 0.55 → walk
+    // direction = WALK_DIRECTIONS[⌊0.7×8⌋] = WALK_DIRECTIONS[5] = 'up-right'
+    // steps = 20 + ⌊0.7×21⌋ = 34
     const ai = new BehaviorAI({ clock, random: () => 0.7, executor, mood })
     ai.onSemanticState('IDLE')
     // 间隔 = 60000 + 0.7×(120000-60000) = 102000
     tick(60000 + Math.round(0.7 * (120000 - 60000)))
-    expect(calls).toContain('walk:right:7')
+    expect(calls).toContain('walk:up-right:34')
   })
 
   it('picks happy action when happy mood and random=0.9', () => {

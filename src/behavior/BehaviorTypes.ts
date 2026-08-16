@@ -13,6 +13,18 @@ export interface BehaviorClock {
   clearTimeout(handle: unknown): void
 }
 
+/** 自主走动的 8 个方向（水平 / 垂直 / 斜向）。 */
+export type WalkDirection =
+  | 'left' | 'right'
+  | 'up' | 'down'
+  | 'up-left' | 'up-right'
+  | 'down-left' | 'down-right'
+
+/** 8 方向列表（BehaviorAI 随机选一个）。 */
+export const WALK_DIRECTIONS: readonly WalkDirection[] = [
+  'left', 'right', 'up', 'down', 'up-left', 'up-right', 'down-left', 'down-right',
+]
+
 /**
  * 行为 AI 驱动宠物所需的渲染层能力（由 PetWindow 实现）。
  * 这些动作都是「自主 transient」，不改变语义状态（语义仍 idle）。
@@ -22,8 +34,8 @@ export interface BehaviorExecutor {
   playAction(action: string): void
   /** 切到下一个 idle 变体（idle_0→1→2→3 顺序轮换）。 */
   nextIdleVariant(): void
-  /** 短途溜达：朝 direction 走 steps 步（walk 动画 + 移动窗口）。 */
-  walk(direction: 'left' | 'right', steps: number): void
+  /** 短途溜达：朝 direction 平移 steps 个 tick（walk 动画 + 移动窗口）。 */
+  walk(direction: WalkDirection, steps: number): void
   /** 当前语义是否空闲（行为 AI 只在空闲时接管）。 */
   isIdle(): boolean
 }
