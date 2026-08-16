@@ -65,9 +65,14 @@ const BASE_WIDTH = 192
 const BASE_HEIGHT = 208
 const DEFAULT_POSITION = { x: 40, y: 40 } as const
 
-/** 自主走动参数：tick 间隔（平滑缓移）+ 锚点最大漂移（小范围溜达）。 */
+/** 自主走动参数：tick 间隔（平滑缓移）。 */
 const WALK_TICK_MS = 50
-const WALK_MAX_DRIFT = 150
+/** 走动活动范围：占屏幕工作区的比例（水平 / 垂直，随屏幕自适应）。 */
+const WALK_DRIFT_RATIO_X = 0.08
+const WALK_DRIFT_RATIO_Y = 0.12
+/** 活动范围最小像素兜底（避免小屏 / 无工作区时范围过小）。 */
+const WALK_DRIFT_MIN_X = 60
+const WALK_DRIFT_MIN_Y = 80
 
 /**
  * 方向 → 每 tick 位移（px）。速度档：左右正常(6) / 斜着中慢(4+4) / 上下最慢(2)。
@@ -507,15 +512,25 @@ export class PetWindow implements BehaviorExecutor {
     const step = WALK_DIRECTION_STEP[direction]
     let dx = step.dx
     let dy = step.dy
-    // 锚点约束：某分量朝该方向走 steps 个 tick 会否超出 ±WALK_MAX_DRIFT，超出则反转该分量。
-    if (Math.abs(this.currentX + dx * steps - this.anchorX) > WALK_MAX_DRIFT) dx = -dx
-    if (Math.abs(this.currentY + dy * steps - this.anchorY) > WALK_MAX_DRIFT) dy = -dy
+    // 锚点约束（随屏幕自适应）：某分量朝该方向走 steps 个 tick 会否超出漂移范围，超出则反转该分量。
+    const drift = this.walkDriftRange()
+    if (Math.abs(this.currentX + dx * steps - this.anchorX) > drift.x) dx = -dx
+    if (Math.abs(this.currentY + dy * steps - this.anchorY) > drift.y) dy = -dy
     this.walkDx = dx
     this.walkDy = dy
     this.walkStepsLeft = steps
     this.mirrored = dx < 0 // 向左分量 → 镜像
     this.controller.setAction('walk')
     this.scheduleWalkStep()
+  }
+
+  /** 走动活动范围（随屏幕工作区自适应）：水平屏宽 8%、垂直屏高 12%。 */
+  private walkDriftRange(): { x: number; y: number } {
+    const wa = this.handle?.getWorkArea()
+    return {
+      x: Math.max(WALK_DRIFT_MIN_X, (wa?.width ?? 0) * WALK_DRIFT_RATIO_X),
+      y: Math.max(WALK_DRIFT_MIN_Y, (wa?.height ?? 0) * WALK_DRIFT_RATIO_Y),
+    }
   }
 
   private scheduleWalkStep(): void {
