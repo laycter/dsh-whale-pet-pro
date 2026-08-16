@@ -124,6 +124,7 @@ interface Win32Bindings {
   destroyMenu: (...args: any[]) => number
   getCursorPos: (...args: any[]) => number
   systemParametersInfoW: (...args: any[]) => number
+  getSystemMetrics: (...args: any[]) => number
   TRACKMOUSEEVENT: any
   wndProc: unknown
   /** Updated on each `create()` so the single wndProc reports drags to the current window. */
@@ -237,6 +238,7 @@ function getBindings(): Promise<Win32Bindings> {
     const destroyMenu = user32.func('__stdcall', 'DestroyMenu', 'int32', ['void *'])
     const getCursorPos = user32.func('__stdcall', 'GetCursorPos', 'int32', ['void *'])
     const systemParametersInfoW = user32.func('__stdcall', 'SystemParametersInfoW', 'int32', ['uint32', 'uint32', 'void *', 'uint32'])
+    const getSystemMetrics = user32.func('__stdcall', 'GetSystemMetrics', 'int32', ['int32'])
 
     const TRACKMOUSEEVENT = koffi.struct('DshTrackMouseEvent', {
       cbSize: 'uint32',
@@ -251,7 +253,7 @@ function getBindings(): Promise<Win32Bindings> {
       updateLayeredWindow, setWindowPos, showWindow, destroyWindow, deleteObject, deleteDC,
       peekMessage: peekMessageW, translateMessage, dispatchMessage: dispatchMessageW, getWindowRect,
       createDibSection, createCompatibleDC, selectObject, getDC, releaseDC, createWindowExW,
-      trackMouseEvent, setCapture, releaseCapture, createPopupMenu, appendMenuW, trackPopupMenu, destroyMenu, getCursorPos, systemParametersInfoW, TRACKMOUSEEVENT,
+      trackMouseEvent, setCapture, releaseCapture, createPopupMenu, appendMenuW, trackPopupMenu, destroyMenu, getCursorPos, systemParametersInfoW, getSystemMetrics, TRACKMOUSEEVENT,
       wndProc: undefined,
       currentOnDrag: undefined,
       currentOnDragMove: undefined,

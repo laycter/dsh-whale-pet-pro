@@ -316,6 +316,12 @@ export class PetWindow implements BehaviorExecutor {
     }
     this.handle = await this.backend.create(opts)
 
+    // 边界钳制：持久化的位置可能因旧版本 bug / 换显示器等原因落在屏幕外，
+    // 创建后立即钳回屏幕内（否则「只闻其声、不见其人」）。
+    if (this.clampToWorkArea()) {
+      this.handle.move(this.currentX, this.currentY)
+    }
+
     this.controller = new AnimationController({
       atlas: this.atlas,
       scale: rs,
@@ -548,16 +554,20 @@ export class PetWindow implements BehaviorExecutor {
     }, WALK_TICK_MS)
   }
 
-  /** 把窗口位置钳制到屏幕工作区内（自主走动不跑出屏幕）。 */
-  private clampToWorkArea(): void {
+  /** 把窗口位置钳制到屏幕工作区内（返回是否发生了钳制）。 */
+  private clampToWorkArea(): boolean {
     const wa = this.handle?.getWorkArea()
-    if (!wa) return
+    if (!wa) return false
     const minX = wa.x
     const maxX = wa.x + wa.width - this.windowWidth
     const minY = wa.y
     const maxY = wa.y + wa.height - this.windowHeight
-    this.currentX = Math.max(minX, Math.min(maxX, this.currentX))
-    this.currentY = Math.max(minY, Math.min(maxY, this.currentY))
+    const nx = Math.max(minX, Math.min(maxX, this.currentX))
+    const ny = Math.max(minY, Math.min(maxY, this.currentY))
+    const clamped = nx !== this.currentX || ny !== this.currentY
+    this.currentX = nx
+    this.currentY = ny
+    return clamped
   }
 
   private finishWalk(): void {
