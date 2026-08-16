@@ -171,6 +171,9 @@ export class PetWindow implements BehaviorExecutor {
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
   private anchorX: number
   private anchorY: number
+  /** 初始位置（召唤时的位置），右键「回到初始位置」回这里。 */
+  private readonly initialX: number
+  private readonly initialY: number
 
   constructor(options: PetWindowOptions) {
     this.backend = options.backend
@@ -198,6 +201,8 @@ export class PetWindow implements BehaviorExecutor {
     this.currentY = position.y
     this.anchorX = position.x
     this.anchorY = position.y
+    this.initialX = position.x
+    this.initialY = position.y
   }
 
   /**
@@ -321,6 +326,9 @@ export class PetWindow implements BehaviorExecutor {
       onToggleMute: () => {
         this.toggleMute()
       },
+      onResetPosition: () => {
+        this.resetPosition()
+      },
     }
     this.handle = await this.backend.create(opts)
 
@@ -416,6 +424,20 @@ export class PetWindow implements BehaviorExecutor {
     this.anchorY = this.currentY
     this.applyState(this.semantic)
     // 拖拽后边框窗口位置跟着新锚点走。
+    this.updateBorderPosition()
+  }
+
+  /** 回到初始位置（右键「回到初始位置」）：移窗口 + 更新锚点 + 持久化。 */
+  resetPosition(): void {
+    if (this.destroyed) return
+    this.cancelWalk()
+    this.mirrored = false
+    this.currentX = this.initialX
+    this.currentY = this.initialY
+    this.anchorX = this.initialX
+    this.anchorY = this.initialY
+    this.handle?.move(this.currentX, this.currentY)
+    this.onDrag?.(this.currentX, this.currentY) // 持久化回位后的位置
     this.updateBorderPosition()
   }
 

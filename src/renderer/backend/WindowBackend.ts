@@ -31,6 +31,8 @@ export interface WindowBackendOptions {
   onClose?: () => void
   /** Invoked when the user chooses the context menu's "toggle sound" item. */
   onToggleMute?: () => void
+  /** Invoked when the user chooses the context menu's "reset position" item. */
+  onResetPosition?: () => void
 }
 
 /** 屏幕工作区（排除任务栏），供自主走动做边界钳制。 */

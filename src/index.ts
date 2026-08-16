@@ -20,7 +20,7 @@ import { Config, type PetConfig } from './config'
 import { PetStateMachine } from './core/PetStateMachine'
 import type { NormalizedEvent, SemanticState } from './core/types'
 import { createHarnessBridge, type HarnessBridge, type HarnessContext } from './integration/HarnessBridge'
-import { loadPosition, savePosition } from './persistence'
+import { savePosition } from './persistence'
 import { loadPetAtlas, scanPets } from './pets'
 import { installPetSettings, type PetSettingsHandle, type PetSettingsRegistrar, type PetSettingsSnapshot } from './settings'
 import { PetWindow } from './renderer/PetWindow'
@@ -37,6 +37,9 @@ export type { PetConfig }
 
 /** A disposer may be sync or async; Cordis awaits async disposers on unload. */
 type Disposer = () => void | Promise<void>
+
+/** 宠物初始位置：召唤时出现的位置，右键「回到初始位置」与收起再召唤都回这里。 */
+const INITIAL_POSITION = { x: 40, y: 40 } as const
 
 /** 语义状态 → 心情活动事件（无则 undefined，靠时间自然衰减）。 */
 function moodActivityFor(state: SemanticState): MoodActivity | undefined {
@@ -205,7 +208,8 @@ export function apply(ctx: Context, config: PetConfig): void {
           animationEnabled: config.animationEnabled,
           idleFrequencySec: config.idleFrequencySec,
           clickThrough: config.clickThrough,
-          position: loadPosition(),
+          // 收起再召唤自动回位：位置固定用初始位置，不读持久化坐标。
+          position: INITIAL_POSITION,
           onDrag: (x, y) => savePosition({ x, y }),
           onHover: () => { window?.playJump() },
           onUnhover: () => { window?.endHover() },

@@ -56,6 +56,8 @@ const MF_STRING = 0x0000
 const MENU_ITEM_CLOSE = 1
 /** Menu item id for the "toggle sound" entry. */
 const MENU_ITEM_TOGGLE_MUTE = 2
+/** Menu item id for the "reset position" entry. */
+const MENU_ITEM_RESET_POSITION = 3
 
 const SW_SHOWNOACTIVATE = 4
 const HWND_TOPMOST = -1
@@ -147,6 +149,8 @@ interface Win32Bindings {
   currentOnClose: (() => void) | undefined
   /** Updated on each `create()` so the single wndProc reports the toggle-sound choice. */
   currentOnToggleMute: (() => void) | undefined
+  /** Updated on each `create()` so the single wndProc reports the reset-position choice. */
+  currentOnResetPosition: (() => void) | undefined
 }
 
 async function loadKoffi(): Promise<Koffi> {
@@ -267,6 +271,7 @@ function getBindings(): Promise<Win32Bindings> {
       currentOnUnhover: undefined,
       currentOnClose: undefined,
       currentOnToggleMute: undefined,
+      currentOnResetPosition: undefined,
     }
 
     // Per-message scratch reused across all windows: the shared wndProc writes
@@ -352,11 +357,14 @@ function getBindings(): Promise<Win32Bindings> {
           if (menu === null) return 0
           getCursorPos(point)
           const p = koffi.decode(point, POINT)
+          appendMenuW(menu, MF_STRING, MENU_ITEM_RESET_POSITION, 'Reset position')
           appendMenuW(menu, MF_STRING, MENU_ITEM_TOGGLE_MUTE, 'Toggle sound')
           appendMenuW(menu, MF_STRING, MENU_ITEM_CLOSE, 'Close pet')
           const choice = trackPopupMenu(menu, TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, p.x, p.y, 0, hwnd, null)
           destroyMenu(menu)
-          if (choice === MENU_ITEM_TOGGLE_MUTE) {
+          if (choice === MENU_ITEM_RESET_POSITION) {
+            bindings.currentOnResetPosition?.()
+          } else if (choice === MENU_ITEM_TOGGLE_MUTE) {
             bindings.currentOnToggleMute?.()
           } else if (choice === MENU_ITEM_CLOSE) {
             bindings.currentOnClose?.()
@@ -538,6 +546,7 @@ export class Win32Backend implements WindowBackend {
     b.currentOnUnhover = options.onUnhover
     b.currentOnClose = options.onClose
     b.currentOnToggleMute = options.onToggleMute
+    b.currentOnResetPosition = options.onResetPosition
 
     const exStyle = WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TOOLWINDOW | (options.clickThrough ? WS_EX_TRANSPARENT : 0)
     const hwnd = createWindowExW(
