@@ -170,6 +170,8 @@ export class PetWindow implements BehaviorExecutor {
   private borderHandle: WindowHandle | undefined
   /** 边框是否应当显示（防异步创建竞态：快速移开后窗口才建好却仍显示）。 */
   private borderWanted = false
+  /** 边框显示期间的鼠标位置轮询定时器（不依赖 WM_NCMOUSELEAVE）。 */
+  private borderCheckTimer: unknown | undefined
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
   private anchorX: number
   private anchorY: number
@@ -588,8 +590,8 @@ export class PetWindow implements BehaviorExecutor {
         const handle = await this.backend.create({
           width,
           height,
-          x: Math.round(this.anchorX - drift.x),
-          y: Math.round(this.anchorY - drift.y),
+          x: Math.round(this.currentX - drift.x),
+          y: Math.round(this.currentY - drift.y),
           alwaysOnTop: true,
           clickThrough: true, // 穿透，不挡鼠标
         })
@@ -606,7 +608,10 @@ export class PetWindow implements BehaviorExecutor {
     } else {
       this.updateBorderPosition()
     }
-    if (this.borderWanted) this.borderHandle.show()
+    if (this.borderWanted) {
+      this.borderHandle.show()
+      this.startBorderCheck()
+    }
   }
 
   /** 边框窗口锁定宠物当前位置：中心 = 宠物当前位置（走动/拖拽/回位时同步）。 */
@@ -619,7 +624,32 @@ export class PetWindow implements BehaviorExecutor {
   /** 鼠标移开时隐藏活动范围边框。 */
   private hideBorder(): void {
     this.borderWanted = false
+    this.stopBorderCheck()
     this.borderHandle?.hide()
+  }
+
+  /**
+   * 鼠标位置轮询：每 ~200ms 检查鼠标是否还在宠物窗口内，不在则自动隐藏边框。
+   * 不依赖 WM_NCMOUSELEAVE（它可能因拖拽 capture / 边框窗口干扰而不触发）。
+   */
+  private startBorderCheck(): void {
+    this.stopBorderCheck()
+    this.borderCheckTimer = this.clock.setTimeout(() => {
+      this.borderCheckTimer = undefined
+      if (this.destroyed || !this.borderWanted) return
+      if (this.handle && !this.handle.isPointInside()) {
+        this.hideBorder()
+        return
+      }
+      this.startBorderCheck()
+    }, 200)
+  }
+
+  private stopBorderCheck(): void {
+    if (this.borderCheckTimer !== undefined) {
+      this.clock.clearTimeout(this.borderCheckTimer)
+      this.borderCheckTimer = undefined
+    }
   }
 
   private scheduleWalkStep(): void {
@@ -699,6 +729,7 @@ export class PetWindow implements BehaviorExecutor {
 
   private teardownWindow(): void {
     this.cancelWalk()
+    this.stopBorderCheck()
     this.controller?.dispose()
     this.controller = undefined
     this.audio?.stop()

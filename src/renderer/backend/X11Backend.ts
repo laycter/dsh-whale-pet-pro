@@ -166,6 +166,10 @@ class X11Handle implements WindowHandle {
     return undefined // X11 暂不做边界钳制（自主走动主要面向 Windows）
   }
 
+  isPointInside(): boolean {
+    return false // X11 暂不做鼠标位置轮询
+  }
+
   setAlwaysOnTop(): void {
     this.flush(this.conn)
   }
