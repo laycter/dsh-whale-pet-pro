@@ -609,11 +609,11 @@ export class PetWindow implements BehaviorExecutor {
     if (this.borderWanted) this.borderHandle.show()
   }
 
-  /** 边框窗口位置跟随当前锚点（拖拽后锚点变了要同步）。 */
+  /** 边框窗口锁定宠物当前位置：中心 = 宠物当前位置（走动/拖拽/回位时同步）。 */
   private updateBorderPosition(): void {
     if (!this.borderHandle) return
     const drift = this.walkDriftRange()
-    this.borderHandle.move(Math.round(this.anchorX - drift.x), Math.round(this.anchorY - drift.y))
+    this.borderHandle.move(Math.round(this.currentX - drift.x), Math.round(this.currentY - drift.y))
   }
 
   /** 鼠标移开时隐藏活动范围边框。 */
@@ -631,6 +631,7 @@ export class PetWindow implements BehaviorExecutor {
       this.currentY += this.walkDy
       this.clampToWorkArea() // 不跑出屏幕
       this.handle.move(this.currentX, this.currentY)
+      this.updateBorderPosition() // 边框锁定宠物（走动时跟随）
       this.onDrag?.(this.currentX, this.currentY) // 持久化新位置
       this.walkStepsLeft--
       this.scheduleWalkStep()

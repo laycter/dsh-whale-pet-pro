@@ -299,6 +299,8 @@ function getBindings(): Promise<Win32Bindings> {
           bindings.dragStartWinY = r.top
           bindings.dragActive = true
           setCapture(hwnd)
+          // 按下立即切拖拽动画（否则要等鼠标移动才切，按住不动时动作停在原地）。
+          bindings.currentOnDragMove?.('right')
           return 0
         }
         if (msg === WM_MOUSEMOVE) {
@@ -327,8 +329,20 @@ function getBindings(): Promise<Win32Bindings> {
             getCursorPos(point)
             const p = koffi.decode(point, POINT)
             const inside = p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom
-            if (inside) bindings.currentOnHover?.()
-            else bindings.currentOnUnhover?.()
+            if (inside) {
+              // 重新注册 leave 检测：capture 破坏了之前的 TrackMouseEvent，
+              // 不重新注册则鼠标移开后收不到 WM_NCMOUSELEAVE（边框一直挂着）。
+              koffi.encode(tme, TRACKMOUSEEVENT, {
+                cbSize: koffi.sizeof(TRACKMOUSEEVENT),
+                dwFlags: TME_LEAVE | TME_NONCLIENT,
+                hwndTrack: hwnd,
+                dwHoverTime: 0,
+              })
+              trackMouseEvent(tme)
+              bindings.currentOnHover?.()
+            } else {
+              bindings.currentOnUnhover?.()
+            }
           }
           return 0
         }
