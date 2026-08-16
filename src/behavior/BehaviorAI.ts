@@ -110,7 +110,12 @@ export class BehaviorAI {
     this.variantTimer = this.clock.setTimeout(() => {
       this.variantTimer = undefined
       if (!this.active || this.disposed) return
-      if (!this.executor.isIdle()) { this.stop(); return }
+      if (!this.executor.isIdle()) {
+        // 暂忙（如拖拽中）：跳过本次，继续 arm——拖拽结束自然恢复，
+        // 不 stop（stop 会让行为 AI 永久停摆，因拖拽不改变语义状态、无人通知恢复）。
+        this.armVariant()
+        return
+      }
       this.executor.nextIdleVariant()
       this.armVariant()
     }, this.tuning.variantMs)
@@ -123,7 +128,11 @@ export class BehaviorAI {
     this.behaviorTimer = this.clock.setTimeout(() => {
       this.behaviorTimer = undefined
       if (!this.active || this.disposed) return
-      if (!this.executor.isIdle()) { this.stop(); return }
+      if (!this.executor.isIdle()) {
+        // 暂忙（如拖拽中）：跳过本次，继续 arm。
+        this.armBehavior()
+        return
+      }
       this.dispatch(this.pickBehavior(this.mood.moodLevel()))
       this.armBehavior()
     }, ms)

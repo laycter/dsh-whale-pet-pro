@@ -317,6 +317,13 @@ function getBindings(): Promise<Win32Bindings> {
             const r = koffi.decode(rect, RECT)
             bindings.currentOnDragEnd?.()
             bindings.currentOnDrag?.(r.left, r.top)
+            // 拖拽期间 SetCapture 抢走鼠标，releaseCapture 后 Windows 不会自动
+            // 补发 hover-leave；这里重新评估：鼠标仍在窗口内 → hover，在外 → unhover。
+            getCursorPos(point)
+            const p = koffi.decode(point, POINT)
+            const inside = p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom
+            if (inside) bindings.currentOnHover?.()
+            else bindings.currentOnUnhover?.()
           }
           return 0
         }

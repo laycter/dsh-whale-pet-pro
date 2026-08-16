@@ -411,10 +411,12 @@ export class PetWindow implements BehaviorExecutor {
   private endDrag(): void {
     if (this.destroyed || !this.controller) return
     this.dragging = false
-    // 拖拽到新位置：锚点跟随（自主走动以新位置为中心 ±150px）。
+    // 拖拽到新位置：锚点跟随（自主走动以新位置为中心，随屏幕比例漂移）。
     this.anchorX = this.currentX
     this.anchorY = this.currentY
     this.applyState(this.semantic)
+    // 拖拽后边框窗口位置跟着新锚点走。
+    this.updateBorderPosition()
   }
 
   /** Show or hide the pet without disposing it. */
@@ -569,10 +571,16 @@ export class PetWindow implements BehaviorExecutor {
         return
       }
     } else {
-      // 锚点可能变了（拖拽后），更新边框位置。
-      this.borderHandle.move(Math.round(this.anchorX - drift.x), Math.round(this.anchorY - drift.y))
+      this.updateBorderPosition()
     }
     this.borderHandle.show()
+  }
+
+  /** 边框窗口位置跟随当前锚点（拖拽后锚点变了要同步）。 */
+  private updateBorderPosition(): void {
+    if (!this.borderHandle) return
+    const drift = this.walkDriftRange()
+    this.borderHandle.move(Math.round(this.anchorX - drift.x), Math.round(this.anchorY - drift.y))
   }
 
   /** 鼠标移开时隐藏活动范围边框。 */
