@@ -15,7 +15,7 @@ separately from [whale-pet-assets](https://github.com/laycter/whale-pet-assets).
 
 1. **Install** the plugin:
    ```bash
-   dsh plugin add whale-pet-pro   # or: npm install whale-pet-pro
+   dsh plugin add dsh-whale-pet-pro   # or: npm install dsh-whale-pet-pro
    ```
 2. **Download a pet** (required — the pet shows nothing without assets):
    grab `boring-pet.zip` from

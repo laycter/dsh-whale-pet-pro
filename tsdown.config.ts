@@ -24,7 +24,7 @@ const CLIENT_EXTERNALS = [
   '@deepseek-ai/dsh-client-runtime/client',
 ] as const
 
-const CLIENT_ID = 'whale-pet-pro'
+const CLIENT_ID = 'dsh-whale-pet-pro'
 const CSS_VIRTUAL_PREFIX = '\0dsh-css:'
 const CSS_VIRTUAL_SUFFIX = '.mjs'
 

@@ -1,5 +1,5 @@
 {
-  "name": "whale-pet-pro",
+  "name": "dsh-whale-pet-pro",
   "version": "0.1.0",
   "description": "Windows silky desktop pet engine for DeepSeek Harness: 24fps animation, semantic mapping, audio, and mood-driven behavior AI. Ships without pet assets (download separately). Forked from dsh-desktop-pet (MIT).",
   "type": "module",

@@ -4,14 +4,14 @@
 # The pet is optional: omitting or removing this bundle leaves Harness
 # functioning normally.
 #
-# name 必须是本包名（whale-pet-pro）：cordis 按 name 从 node_modules 解析插件
+# name 必须是本包名（dsh-whale-pet-pro）：cordis 按 name 从 node_modules 解析插件
 # 本体。写成 dsh-desktop-pet 会让 cordis 加载旧版 dsh-desktop-pet 包。
 #
 # 按需召唤：enabled 默认 false——开机不启动桌宠；点 UI 的 🐳 召唤按钮
 # （settings 命名空间 enabled=true）才加载素材并创建窗口。
 - insert:
     - id: desktop-pet
-      name: whale-pet-pro
+      name: dsh-whale-pet-pro
       config:
         enabled: false
         alwaysOnTop: true

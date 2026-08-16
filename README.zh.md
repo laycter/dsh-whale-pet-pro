@@ -28,9 +28,9 @@
 1. **安装插件**（安装方式取决于你的 DSH）：
    ```bash
    # 方式 A：DSH 插件安装（如支持）
-   dsh plugin add whale-pet-pro
+   dsh plugin add dsh-whale-pet-pro
    # 方式 B：npm
-   npm install whale-pet-pro
+   npm install dsh-whale-pet-pro
    ```
 
 2. **下载宠物素材**（必须，否则召唤后没有画面）：
