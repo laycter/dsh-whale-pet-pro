@@ -170,6 +170,8 @@ export class PetWindow implements BehaviorExecutor {
   private borderHandle: WindowHandle | undefined
   /** 边框是否应当显示（防异步创建竞态：快速移开后窗口才建好却仍显示）。 */
   private borderWanted = false
+  /** 边框窗口创建中（防并发多次 create）。 */
+  private borderCreating = false
   /** 边框显示期间的鼠标位置轮询定时器（不依赖 WM_NCMOUSELEAVE）。 */
   private borderCheckTimer: unknown | undefined
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
@@ -578,12 +580,14 @@ export class PetWindow implements BehaviorExecutor {
     }
   }
 
-  /** 悬停时显示活动范围边框（懒创建边框窗口，点击穿透不挡鼠标）。 */
+  /** 悬停时显示活动范围边框（懒创建一次，之后只 show + 更新位置，不做实时跟随）。 */
   private async showBorder(): Promise<void> {
     if (this.destroyed) return
     this.borderWanted = true
     const drift = this.walkDriftRange()
     if (!this.borderHandle) {
+      if (this.borderCreating) return // 已在创建，等下次
+      this.borderCreating = true
       const width = Math.max(8, Math.round(drift.x * 2))
       const height = Math.max(8, Math.round(drift.y * 2))
       try {
@@ -595,6 +599,7 @@ export class PetWindow implements BehaviorExecutor {
           alwaysOnTop: true,
           clickThrough: true, // 穿透，不挡鼠标
         })
+        this.borderCreating = false
         // 创建期间鼠标已移开：销毁刚建的窗口，不显示。
         if (this.destroyed || !this.borderWanted) {
           try { handle.destroy() } catch { /* no-op */ }
@@ -603,6 +608,7 @@ export class PetWindow implements BehaviorExecutor {
         this.borderHandle = handle
         this.borderHandle.present(borderFrame(width, height, BORDER_THICKNESS, BORDER_COLOR))
       } catch {
+        this.borderCreating = false
         return
       }
     } else {
@@ -661,7 +667,6 @@ export class PetWindow implements BehaviorExecutor {
       this.currentY += this.walkDy
       this.clampToWorkArea() // 不跑出屏幕
       this.handle.move(this.currentX, this.currentY)
-      this.updateBorderPosition() // 边框锁定宠物（走动时跟随）
       this.onDrag?.(this.currentX, this.currentY) // 持久化新位置
       this.walkStepsLeft--
       this.scheduleWalkStep()

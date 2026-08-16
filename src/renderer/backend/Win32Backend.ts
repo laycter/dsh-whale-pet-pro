@@ -39,6 +39,8 @@ const WM_NCLBUTTONDOWN = 0x00a1
 const WM_NCLBUTTONUP = 0x00a2
 const WM_MOUSEMOVE = 0x0200
 const WM_LBUTTONUP = 0x0202
+const WM_LBUTTONDOWN = 0x0201
+const WM_CAPTURECHANGED = 0x0215
 const WM_NCMOUSEMOVE = 0x00a0
 const WM_NCMOUSELEAVE = 0x02a2
 const WM_NCRBUTTONUP = 0x00a5
@@ -286,6 +288,15 @@ function getBindings(): Promise<Win32Bindings> {
       (hwnd: any, msg: number, wParam: number, lParam: number) => {
         if (msg === WM_NCHITTEST) return HTCAPTION
         if (msg === WM_DESTROY) return 0
+        if (msg === WM_CAPTURECHANGED) {
+          // SetCapture 被意外取消（释放/失焦/窗口重建）时兜底：重置拖拽状态，
+          // 否则 dragActive 卡 true 会让后续鼠标事件全部异常（拖拽失效、hover 断）。
+          if (bindings.dragActive) {
+            bindings.dragActive = false
+            bindings.currentOnDragEnd?.()
+          }
+          return 0
+        }
         if (msg === WM_NCLBUTTONDOWN) {
           // Begin a manual drag: capture the mouse so moves keep arriving even
           // outside the small window, and record the start positions.
