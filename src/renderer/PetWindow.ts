@@ -168,6 +168,8 @@ export class PetWindow implements BehaviorExecutor {
   private walkDy = 0
   /** 悬停时显示的活动范围边框窗口（懒创建）。 */
   private borderHandle: WindowHandle | undefined
+  /** 边框是否应当显示（防异步创建竞态：快速移开后窗口才建好却仍显示）。 */
+  private borderWanted = false
   /** 走动锚点（召唤/拖拽结束时的位置），约束 ±WALK_MAX_DRIFT。 */
   private anchorX: number
   private anchorY: number
@@ -495,7 +497,10 @@ export class PetWindow implements BehaviorExecutor {
     this.finishIntro()
     const hoverAction = this.manifest?.semantic?.hover
     if (hoverAction && this.tables?.has(hoverAction)) {
-      this.controller.setAction(hoverAction)
+      // 播一次 hover 反应后回当前语义动作。不能用 setAction：hover 动作
+      // （如 happy）往往 loops:1，setAction 播完会停在最后一帧「卡住」。
+      const resume = this.actionForSemantic(this.semantic)
+      this.controller.playTransient(hoverAction as CodexPetState, resume as CodexPetState)
     } else {
       const resumePose = SEMANTIC_TO_CODEX[this.semantic] ?? 'idle'
       this.controller.playTransient('jumping', resumePose)
@@ -574,12 +579,13 @@ export class PetWindow implements BehaviorExecutor {
   /** 悬停时显示活动范围边框（懒创建边框窗口，点击穿透不挡鼠标）。 */
   private async showBorder(): Promise<void> {
     if (this.destroyed) return
+    this.borderWanted = true
     const drift = this.walkDriftRange()
     if (!this.borderHandle) {
       const width = Math.max(8, Math.round(drift.x * 2))
       const height = Math.max(8, Math.round(drift.y * 2))
       try {
-        this.borderHandle = await this.backend.create({
+        const handle = await this.backend.create({
           width,
           height,
           x: Math.round(this.anchorX - drift.x),
@@ -587,15 +593,20 @@ export class PetWindow implements BehaviorExecutor {
           alwaysOnTop: true,
           clickThrough: true, // 穿透，不挡鼠标
         })
+        // 创建期间鼠标已移开：销毁刚建的窗口，不显示。
+        if (this.destroyed || !this.borderWanted) {
+          try { handle.destroy() } catch { /* no-op */ }
+          return
+        }
+        this.borderHandle = handle
         this.borderHandle.present(borderFrame(width, height, BORDER_THICKNESS, BORDER_COLOR))
       } catch {
-        this.borderHandle = undefined
         return
       }
     } else {
       this.updateBorderPosition()
     }
-    this.borderHandle.show()
+    if (this.borderWanted) this.borderHandle.show()
   }
 
   /** 边框窗口位置跟随当前锚点（拖拽后锚点变了要同步）。 */
@@ -607,6 +618,7 @@ export class PetWindow implements BehaviorExecutor {
 
   /** 鼠标移开时隐藏活动范围边框。 */
   private hideBorder(): void {
+    this.borderWanted = false
     this.borderHandle?.hide()
   }
 
