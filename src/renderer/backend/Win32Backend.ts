@@ -19,7 +19,7 @@
  */
 
 import { rgbaToPremultipliedBgraInto, type PetFrame } from '../FrameDecoder'
-import type { WindowBackend, WindowBackendOptions, WindowHandle } from './WindowBackend'
+import type { WindowBackend, WindowBackendOptions, WindowHandle, WorkArea } from './WindowBackend'
 
 // --- Win32 constants --------------------------------------------------------
 
@@ -61,6 +61,9 @@ const SW_SHOWNOACTIVATE = 4
 const HWND_TOPMOST = -1
 const HWND_NOTOPMOST = -2
 const PM_REMOVE = 1
+
+/** SPI_GETWORKAREA：获取主显示器工作区（排除任务栏）。 */
+const SPI_GETWORKAREA = 0x0030
 
 const CLASS_NAME = 'DshDesktopPet'
 
@@ -120,6 +123,7 @@ interface Win32Bindings {
   trackPopupMenu: (...args: any[]) => number
   destroyMenu: (...args: any[]) => number
   getCursorPos: (...args: any[]) => number
+  systemParametersInfoW: (...args: any[]) => number
   TRACKMOUSEEVENT: any
   wndProc: unknown
   /** Updated on each `create()` so the single wndProc reports drags to the current window. */
@@ -232,6 +236,7 @@ function getBindings(): Promise<Win32Bindings> {
     const trackPopupMenu = user32.func('__stdcall', 'TrackPopupMenu', 'int32', ['void *', 'uint32', 'int32', 'int32', 'int32', 'void *', 'void *'])
     const destroyMenu = user32.func('__stdcall', 'DestroyMenu', 'int32', ['void *'])
     const getCursorPos = user32.func('__stdcall', 'GetCursorPos', 'int32', ['void *'])
+    const systemParametersInfoW = user32.func('__stdcall', 'SystemParametersInfoW', 'int32', ['uint32', 'uint32', 'void *', 'uint32'])
 
     const TRACKMOUSEEVENT = koffi.struct('DshTrackMouseEvent', {
       cbSize: 'uint32',
@@ -246,7 +251,7 @@ function getBindings(): Promise<Win32Bindings> {
       updateLayeredWindow, setWindowPos, showWindow, destroyWindow, deleteObject, deleteDC,
       peekMessage: peekMessageW, translateMessage, dispatchMessage: dispatchMessageW, getWindowRect,
       createDibSection, createCompatibleDC, selectObject, getDC, releaseDC, createWindowExW,
-      trackMouseEvent, setCapture, releaseCapture, createPopupMenu, appendMenuW, trackPopupMenu, destroyMenu, getCursorPos, TRACKMOUSEEVENT,
+      trackMouseEvent, setCapture, releaseCapture, createPopupMenu, appendMenuW, trackPopupMenu, destroyMenu, getCursorPos, systemParametersInfoW, TRACKMOUSEEVENT,
       wndProc: undefined,
       currentOnDrag: undefined,
       currentOnDragMove: undefined,
@@ -421,6 +426,7 @@ class Win32Handle implements WindowHandle {
     private readonly bitsPtr: any,
     private readonly bitsLength: number,
     private readonly msg: any,
+    private readonly workArea: WorkArea | undefined,
   ) {
     const { koffi, POINT, SIZE, BLENDFUNCTION } = bindings
     this.ptSrc = koffi.alloc(POINT, 1)
@@ -458,6 +464,10 @@ class Win32Handle implements WindowHandle {
   move(x: number, y: number): void {
     if (this.destroyed) return
     this.bindings.setWindowPos(this.hwnd, HWND_TOPMOST, x, y, 0, 0, 0x0001 | 0x0010)
+  }
+
+  getWorkArea(): WorkArea | undefined {
+    return this.workArea
   }
 
   setAlwaysOnTop(value: boolean): void {
@@ -558,7 +568,19 @@ export class Win32Backend implements WindowBackend {
 
     const msg = koffi.alloc(b.MSG, 1)
 
-    const handle = new Win32Handle(b, hwnd, hdcMem, hBitmap, bitsPtr, options.width * options.height * 4, msg)
+    // 获取主显示器工作区（自主走动做边界钳制用；失败则不钳制）。
+    let workArea: WorkArea | undefined
+    try {
+      const waRect = koffi.alloc(b.RECT, 1)
+      if (b.systemParametersInfoW(SPI_GETWORKAREA, 0, waRect, 0) !== 0) {
+        const wa = koffi.decode(waRect, b.RECT)
+        workArea = { x: wa.left, y: wa.top, width: wa.right - wa.left, height: wa.bottom - wa.top }
+      }
+    } catch {
+      workArea = undefined
+    }
+
+    const handle = new Win32Handle(b, hwnd, hdcMem, hBitmap, bitsPtr, options.width * options.height * 4, msg, workArea)
     handle.show()
     handle.startPump()
 

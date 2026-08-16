@@ -16,7 +16,7 @@
  */
 
 import type { PetFrame } from '../FrameDecoder'
-import type { WindowBackend, WindowBackendOptions, WindowHandle } from './WindowBackend'
+import type { WindowBackend, WindowBackendOptions, WindowHandle, WorkArea } from './WindowBackend'
 
 interface KoffiLibrary {
   func(convention: string, name: string, result: string, args: string[]): (...args: any[]) => any
@@ -160,6 +160,10 @@ class X11Handle implements WindowHandle {
     this.winY = y
     this.configureWindow(this.conn, this.window, XCB_CONFIG_WINDOW_X | XCB_CONFIG_WINDOW_Y, [x, y])
     this.flush(this.conn)
+  }
+
+  getWorkArea(): WorkArea | undefined {
+    return undefined // X11 暂不做边界钳制（自主走动主要面向 Windows）
   }
 
   setAlwaysOnTop(): void {

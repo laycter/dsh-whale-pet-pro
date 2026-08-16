@@ -33,10 +33,20 @@ export interface WindowBackendOptions {
   onToggleMute?: () => void
 }
 
+/** 屏幕工作区（排除任务栏），供自主走动做边界钳制。 */
+export interface WorkArea {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface WindowHandle {
   /** Present a full-window RGBA frame (size must match the created window). */
   present(frame: PetFrame): void
   move(x: number, y: number): void
+  /** 屏幕工作区（排除任务栏）；不支持时返回 undefined（不钳制）。 */
+  getWorkArea(): WorkArea | undefined
   setAlwaysOnTop(value: boolean): void
   show(): void
   hide(): void

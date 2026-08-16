@@ -508,11 +508,24 @@ export class PetWindow implements BehaviorExecutor {
       if (this.walkStepsLeft <= 0) { this.finishWalk(); return }
       const dx = this.walkDirection === 'left' ? -WALK_STEP_PX : WALK_STEP_PX
       this.currentX += dx
+      this.clampToWorkArea() // 不跑出屏幕
       this.handle.move(this.currentX, this.currentY)
       this.onDrag?.(this.currentX, this.currentY) // 持久化新位置
       this.walkStepsLeft--
       this.scheduleWalkStep()
     }, WALK_STEP_MS)
+  }
+
+  /** 把窗口位置钳制到屏幕工作区内（自主走动不跑出屏幕）。 */
+  private clampToWorkArea(): void {
+    const wa = this.handle?.getWorkArea()
+    if (!wa) return
+    const minX = wa.x
+    const maxX = wa.x + wa.width - this.windowWidth
+    const minY = wa.y
+    const maxY = wa.y + wa.height - this.windowHeight
+    this.currentX = Math.max(minX, Math.min(maxX, this.currentX))
+    this.currentY = Math.max(minY, Math.min(maxY, this.currentY))
   }
 
   private finishWalk(): void {
