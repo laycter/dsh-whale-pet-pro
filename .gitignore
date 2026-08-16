@@ -1,0 +1,53 @@
+# whale-pet-pro 安全 .gitignore —— 白名单制：默认排除一切可能含密钥的文件
+# 规则：宁可多排除，不可漏密钥（鸭鸭钦点）
+
+# ── 密钥与凭据（绝不可提交）──
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+credentials*
+secrets*
+*secret*
+*api_key*
+*apikey*
+.config*
+config.local.*
+settings.local.*
+
+# ── DSH 用户配置与状态（可能含模型路由/密钥）──
+.dsh/
+~/.dsh*
+profiles/
+sessions/
+storages/
+cordis.patch.local.yml
+
+# ── 依赖与构建产物 ──
+node_modules/
+lib/
+*.tsbuildinfo
+
+# ── 本地测试/临时 ──
+test-tmp/
+tmp/
+*.log
+.DS_Store
+Thumbs.db
+
+# ── 本地素材源 ──
+/pet-downloads/
+/ai-pet-src/
+
+# ── 宠物素材（不随引擎仓库分发）──
+# boring-pet：GPL-3.0（DeskPet 作者 2048Nemo），走 whale-pet-assets 仓库
+/assets/pets/boring-pet/
+# fat-fish-maid：作者不明，许可不清晰
+/assets/pets/fat-fish-maid/
+# whale-ui-pet-v2：whale-ui-pet 的本地处理版（开发中间产物）
+/assets/pets/whale-ui-pet-v2/
+# 注：assets/pets/whale-ui-pet/ 保留——来自 @dsh-external/dsh-client-ui-pet（MIT），
+# 是 tests/petdir.spec.ts 的测试素材（clone 后可跑测试）。

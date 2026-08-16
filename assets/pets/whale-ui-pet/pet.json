@@ -1,0 +1,22 @@
+{
+  "id": "whale-ui-pet",
+  "displayName": "鲸鱼娘·界面版",
+  "description": "23 动作 / 1007 帧 · 素材来自 dsh-client-ui-pet（Ref2VA 生成，220×220 透明 PNG）",
+  "format": "dir",
+  "fps": 24,
+  "actions": {
+    "idle": { "fps": 20 },
+    "wave": { "fps": 20 },
+    "wait": { "fps": 20 },
+    "swim": { "fps": 20 },
+    "think": { "fps": 20 },
+    "drag": { "fps": 24 },
+    "dance": { "fps": 24 },
+    "happy": { "fps": 24 },
+    "music": { "fps": 24 },
+    "sleep": { "fps": 12 },
+    "sit_sleep": { "fps": 12 },
+    "cry": { "fps": 18 },
+    "surprise": { "fps": 24 }
+  }
+}

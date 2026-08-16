@@ -1,0 +1,17 @@
+# whale-pet-pro 引擎包不随包分发任何宠物素材（双保险，files 白名单已排除）。
+# 素材走独立仓库 whale-pet-assets 下载，用户按需取用。
+
+# 宠物素材（含 boring-pet 的 GPL-3.0 素材，见 CREDITS.md）
+assets/
+
+# 源码与测试（发布只含 lib 构建产物，见 package.json files 白名单）
+src/
+tests/
+scripts/
+
+# 依赖与本地状态
+node_modules/
+*.log
+*.tsbuildinfo
+.DS_Store
+Thumbs.db

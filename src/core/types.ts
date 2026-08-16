@@ -1,0 +1,106 @@
+/**
+ * Harness-independent type vocabulary shared across the pet core.
+ *
+ * Nothing in this file imports from deepseek-harness or Cordis. Keeping these
+ * types in one place is what lets the pet's behavioral logic be tested as a
+ * standalone library.
+ */
+
+/** The semantic activity states the pet reasons about. */
+export type SemanticState =
+  | 'STARTING'
+  | 'IDLE'
+  | 'THINKING'
+  | 'WORKING'
+  | 'CODING'
+  | 'RUNNING_COMMAND'
+  | 'WAITING_FOR_USER'
+  | 'SUCCESS'
+  | 'ERROR'
+  | 'SLEEPING'
+
+/**
+ * The nine renderer states defined by the Codex Pet sprite-sheet contract.
+ * `running-left` / `running-right` are drag-direction poses; the rest are
+ * activity poses. Look directions (v2 rows 9–10) are intentionally not part
+ * of the activity vocabulary.
+ */
+export type CodexPetState =
+  | 'idle'
+  | 'running-right'
+  | 'running-left'
+  | 'waving'
+  | 'jumping'
+  | 'failed'
+  | 'waiting'
+  | 'running'
+  | 'review'
+
+/**
+ * A normalized activity event produced by the Harness bridge. It carries no
+ * raw Harness payloads — only a semantic type plus safe scalar metadata.
+ */
+export type NormalizedEventType =
+  | 'session.started'
+  | 'session.idle'
+  | 'agent.thinking'
+  | 'tool.started'
+  | 'tool.completed'
+  | 'user_input.required'
+  | 'user_input.resolved'
+  | 'task.completed'
+  | 'task.failed'
+
+export interface NormalizedEvent {
+  type: NormalizedEventType
+  /** Epoch milliseconds. */
+  timestamp: number
+  sessionId?: string
+  taskId?: string
+  metadata?: Record<string, unknown>
+}
+
+/** The mapping from a semantic state to the Codex renderer pose. */
+export const SEMANTIC_TO_CODEX: Readonly<Record<SemanticState, CodexPetState>> = {
+  STARTING: 'waving',
+  IDLE: 'idle',
+  THINKING: 'running',
+  WORKING: 'running',
+  CODING: 'running',
+  RUNNING_COMMAND: 'running',
+  WAITING_FOR_USER: 'waiting',
+  SUCCESS: 'review',
+  ERROR: 'failed',
+  SLEEPING: 'idle',
+}
+
+/**
+ * whale-pet-pro 扩展（M3 映射外部化）：内部触发状态（跨宠物通用的语义锚点）。
+ * manifest.semantic 声明「触发状态 → 本宠目录动作」，让 dir 格式宠物不依赖
+ * Codex 两层映射。语义状态经 {@link SEMANTIC_STATE_TO_TRIGGER} 归一到稳定锚点，
+ * 交互（hover/drag/fall）由窗口层直接触发。
+ */
+export type SemanticTrigger =
+  | 'idle'      // 待机
+  | 'working'   // 干活/思考/写码/跑命令
+  | 'waiting'   // 等用户输入
+  | 'success'   // 成功
+  | 'error'     // 出错
+  | 'sleeping'  // 睡觉
+  | 'starting'  // 启动（打招呼）
+  | 'hover'     // 鼠标悬停
+  | 'drag'      // 拖拽
+  | 'fall'      // 掉落/关闭
+
+export const SEMANTIC_STATE_TO_TRIGGER: Readonly<Record<SemanticState, SemanticTrigger>> = {
+  STARTING: 'starting',
+  IDLE: 'idle',
+  THINKING: 'working',
+  WORKING: 'working',
+  CODING: 'working',
+  RUNNING_COMMAND: 'working',
+  WAITING_FOR_USER: 'waiting',
+  SUCCESS: 'success',
+  ERROR: 'error',
+  SLEEPING: 'sleeping',
+}
