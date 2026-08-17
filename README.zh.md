@@ -168,10 +168,11 @@ DSH 的 API 网关默认**不向浏览器暴露新注册的 settings 命名空�
 
 **引擎包不含素材**，你需要先下载一个宠物才能召唤。
 
-### 方式 A（推荐）：桌宠市场（多来源）
+### 方式 A（推荐）：桌宠市场（注册表 + 多来源聚合）
 
-打开 **设置 → 桌宠 →「+ 更多宠物获取」**，市场聚合了多个宠物仓库
-（来源列表见 `src/client/pet-market.ts` 的 `PET_MARKET_SOURCES`）：
+打开 **设置 → 桌宠 →「+ 更多宠物获取」**，市场由注册表
+（[whale-pet-assets](https://github.com/laycter/whale-pet-assets) 的 `index.json`）
+统一管来源列表，前端自动聚合所有来源的宠物：
 
 1. 列表里挑一个宠物 → 详情 → 下载 zip
 2. 解压到本插件的 `assets/pets/<宠物 id>/`
@@ -181,7 +182,8 @@ DSH 的 API 网关默认**不向浏览器暴露新注册的 settings 命名空�
 - [whale-pet-assets](https://github.com/laycter/whale-pet-assets)（含 BoringPet）
 
 > **社区成员想发布自己的桌宠？** 建一个「宠物仓库」（根目录带 `index.json`
-> 桌宠清单），把 URL 加进 `PET_MARKET_SOURCES` 即被市场聚合。
+> 桌宠清单），把仓库 URL 加进注册表 `index.json` 的 `sources` 数组（PR 一行），
+> 市场自动聚合——**引擎代码不用改**。
 > 完整规范见 [`docs/pet-repo-spec.md`](docs/pet-repo-spec.md)。
 
 ### 方式 B：从 DeskPet 提取 BoringPet

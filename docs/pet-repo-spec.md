@@ -1,21 +1,34 @@
-# 宠物仓库规范（多来源市场）
+# 宠物仓库规范（注册表 + 多来源市场）
 
-> whale-pet-pro 的桌宠市场是**多来源聚合**的：任何 GitHub 仓库，只要根目录带
-> 一份 `index.json` 桌宠清单，就算一个「宠物仓库」。前端配置来源列表，拉取
-> 并合并所有仓库的桌宠——**社区去中心化，人人可建仓库，不依赖中心审批**。
+> whale-pet-pro 的桌宠市场由**注册表**（[whale-pet-assets](https://github.com/laycter/whale-pet-assets) 的
+> `index.json`）统一管「来源列表」：注册表顶层 `sources` 数组列出所有宠物仓库的
+> index.json URL。前端先拉注册表 → 并行拉所有来源 → 合并去重展示。
+> **社区作者建自己的宠物仓库，把 URL 加进注册表 `sources`（PR 一行）即被聚合，
+> 引擎代码一次不用改。**
 
 ## 一、市场如何工作
 
 ```
 whale-pet-pro 前端
-   │  PET_MARKET_SOURCES（来源列表，见 src/client/pet-market.ts）
-   ├→ 拉取 whale-pet-assets 的 index.json ──┐
-   ├→ 拉取 成员A 的宠物仓库 index.json ──────┤ 合并去重（按 id）
-   ├→ 拉取 成员B 的宠物仓库 index.json ──────┘
+   │  ① 拉注册表 whale-pet-assets/index.json → 读 sources 列表
+   ├→ ② 拉 whale-pet-assets 的 index.json ──┐
+   ├→ ② 拉 成员A 的宠物仓库 index.json ──────┤ 合并去重（按 id）
+   ├→ ② 拉 成员B 的宠物仓库 index.json ──────┘
    └→ 虚拟列表展示所有桌宠
 ```
 
-- 每个来源 = 一个仓库根目录的 `index.json`（raw URL）。
+- 注册表 `index.json` 结构：
+
+```json
+{
+  "sources": [
+    "https://raw.githubusercontent.com/laycter/whale-pet-assets/main/index.json",
+    "https://raw.githubusercontent.com/<成员A>/<仓库>/main/index.json"
+  ],
+  "pets": [ { ... 注册表自带的宠物 ... } ]
+}
+```
+
 - 单个来源拉取失败**不影响其它来源**（跳过失败源）。
 - 合并按 `id` 去重，先到先得。
 
@@ -96,13 +109,31 @@ zip 内直接是 `pet.json` + 动作目录，**不要**外层再套 `<pet-id>/`�
 }
 ```
 
-## 三、加入市场（二选一）
+## 三、加入市场（两种方式）
 
-1. **把自己的仓库加进 whale-pet-pro 的来源列表**：在
-   [whale-pet-pro](https://github.com/laycter/whale-pet-pro) 提 PR，把仓库的
-   index.json raw URL 加进 `src/client/pet-market.ts` 的 `PET_MARKET_SOURCES`。
-2. **提 PR 到 whale-pet-assets**：把 zip + 预览图 + index.json 条目提交到
-   [whale-pet-assets](https://github.com/laycter/whale-pet-assets)，由仓库维护者合并。
+### 方式 A（推荐）：独立宠物仓库 + 注册表一行 URL
+
+1. 建自己的仓库（根目录带 `index.json` + `pets/` + `previews/`，见上文）。
+2. 在 [whale-pet-assets](https://github.com/laycter/whale-pet-assets) 提 PR，
+   把仓库的 index.json raw URL 加进 `index.json` 的 `sources` 数组（**一行**）：
+
+```json
+"sources": [
+  "https://raw.githubusercontent.com/laycter/whale-pet-assets/main/index.json",
+  "https://raw.githubusercontent.com/<你的账号>/<你的仓库>/main/index.json"
+]
+```
+
+3. 维护者合并 → 市场前端下次打开自动聚合你的仓库（素材仍在你自己的仓库，
+   你随时自己更新，无需再 PR）。
+
+> 这种方式**不碰引擎代码**，素材自主管理，适合想长期维护自己桌宠的作者。
+
+### 方式 B：直接提交到 whale-pet-assets
+
+把 zip + 预览图 + `index.json` 的 `pets` 数组条目提交到
+[whale-pet-assets](https://github.com/laycter/whale-pet-assets)，由仓库维护者合并。
+素材集中托管，适合一次性投稿。
 
 ## 四、版权与许可（红线）
 
