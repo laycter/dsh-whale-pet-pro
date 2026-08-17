@@ -1,6 +1,6 @@
 # Credits & 素材许可说明（Credits & Asset Licensing）
 
-## 引擎（whale-pet-pro）
+## 引擎（dsh-whale-pet-pro）
 
 本项目的代码（动画引擎、语义映射、音效播放、行为 AI、市场 UI）基于
 [dsh-desktop-pet](https://github.com/)（MIT）二次开发，采用 **MIT** 许可。
@@ -19,7 +19,7 @@
 
 ### 为什么 BoringPet 素材不随本包分发
 
-BoringPet 素材是 **GPL-3.0**，而 whale-pet-pro 引擎是 **MIT**。二者混合分发
+BoringPet 素材是 **GPL-3.0**，而 dsh-whale-pet-pro 引擎是 **MIT**。二者混合分发
 会形成「混合许可」，使引擎失去 MIT 允许下游闭源商用的自由度。因此：
 
 - ✅ **引擎包（本仓库 / npm）**：MIT，**不含任何宠物素材**

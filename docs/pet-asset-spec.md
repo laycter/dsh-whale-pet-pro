@@ -1,4 +1,4 @@
-# whale-pet-pro 素材规格 v2（AI 视频生成指南）
+# dsh-whale-pet-pro 素材规格 v2（AI 视频生成指南）
 
 > 供鸭鸭生成桌宠动画素材 ｜ 2026-08-15 ｜ 借鉴 DeskPet 的 PET.md 行为设计
 

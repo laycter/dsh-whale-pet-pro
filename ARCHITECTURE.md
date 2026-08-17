@@ -1,4 +1,4 @@
-# whale-pet-pro · 项目架构（v0.1 待鸭鸭审阅）
+# dsh-whale-pet-pro · 项目架构（v0.1 待鸭鸭审阅）
 
 > 目标：Windows 丝滑桌面宠物引擎（24fps + 完整行为 AI）+ DSH 深度集成，开源分享。
 > 基础：Fork dsh-desktop-pet（MIT）——保留其 Win32 窗口/拖拽/DSH 事件映射，重写动画与行为层。
@@ -19,7 +19,7 @@
 ## 二、模块划分（低耦合高内聚）
 
 ```
-whale-pet-pro/
+dsh-whale-pet-pro/
 ├── src/
 │   ├── renderer/            ← 渲染层（重写）
 │   │   ├── AnimationController.ts ← 帧调度（Codex 切片 + dir 帧表双模式）
@@ -43,7 +43,7 @@ whale-pet-pro/
 └── docs/                    ← 素材规范 + 开发文档
 ```
 
-**dir 素材格式（whale-pet-pro 扩展，PET.md 风格）**：
+**dir 素材格式（dsh-whale-pet-pro 扩展，PET.md 风格）**：
 
 ```jsonc
 // pet.json
@@ -139,7 +139,7 @@ DSH 对话流（assistant 消息）
 - ✅ step-2：dir 格式加载器 `PetDirLoader`（帧数不限、批量并发解码、fps 继承）+ AnimationController 双模式 + PetWindow 动作映射/自由动作/任意帧尺寸适配 + `whale-ui-pet` 素材接入（23 动作 1007 帧）
 - ✅ step-3：按需召唤（见五·五）——按钮触发、跨会话不自动启动、三层崩溃隔离
 - ✅ 测试：`tests/petdir.spec.ts` 9 项（真实素材 + fake clock），全绿
-- ✅ 双端修复：CLIENT_ID='whale-pet-pro'（client 注册）+ cordis.patch.yml name='whale-pet-pro'（host 解析）+ 残留旧 junction 隔离
+- ✅ 双端修复：CLIENT_ID='whale-pet-pro'（client 注册，当时包名）+ cordis.patch.yml name='whale-pet-pro'（host 解析，当时包名）+ 残留旧 junction 隔离（注：2026-08-16 后包名统一为 dsh-whale-pet-pro）
 - ⏳ step-4：DSH 实机验证（重启后点 🐳 按钮召唤 whale-ui-pet）
 
 ## 七、风险与对策

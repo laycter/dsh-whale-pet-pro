@@ -1,6 +1,6 @@
 # 宠物仓库规范（注册表 + 多来源市场）
 
-> whale-pet-pro 的桌宠市场由**注册表**（[whale-pet-assets](https://github.com/laycter/whale-pet-assets) 的
+> dsh-whale-pet-pro 的桌宠市场由**注册表**（[whale-pet-assets](https://github.com/laycter/whale-pet-assets) 的
 > `index.json`）统一管「来源列表」：注册表顶层 `sources` 数组列出所有宠物仓库的
 > index.json URL。前端先拉注册表 → 并行拉所有来源 → 合并去重展示。
 > **社区作者建自己的宠物仓库，把 URL 加进注册表 `sources`（PR 一行）即被聚合，
@@ -9,7 +9,7 @@
 ## 一、市场如何工作
 
 ```
-whale-pet-pro 前端
+dsh-whale-pet-pro 前端
    │  ① 拉注册表 whale-pet-assets/index.json → 读 sources 列表
    ├→ ② 拉 whale-pet-assets 的 index.json ──┐
    ├→ ② 拉 成员A 的宠物仓库 index.json ──────┤ 合并去重（按 id）
@@ -90,7 +90,7 @@ zip 内直接是 `pet.json` + 动作目录，**不要**外层再套 `<pet-id>/`�
 └── 各动作目录内的 sound.m4a（可选）
 ```
 
-`pet.json` 关键字段（完整见 whale-pet-pro 的
+`pet.json` 关键字段（完整见 dsh-whale-pet-pro 的
 [`docs/MAPPING-ARCHITECTURE.md`](./MAPPING-ARCHITECTURE.md)）：
 
 ```jsonc
