@@ -1,4 +1,4 @@
-# whale-pet-pro 🐳
+# dsh-whale-pet-pro 🐳
 
 > A silky 24fps desktop-pet engine with behavior AI, as a
 > [DeepSeek Harness](https://github.com/deepseek-ai/DeepSeek-Harness) (DSH) plugin.
@@ -41,7 +41,7 @@ separately from [whale-pet-assets](https://github.com/laycter/whale-pet-assets).
 ## Layout
 
 ```text
-whale-pet-pro/
+dsh-whale-pet-pro/
 ├── src/
 │   ├── renderer/            # animation controller, window, frame decoder, backends, audio
 │   ├── behavior/            # MoodSystem + BehaviorAI (behavior AI)

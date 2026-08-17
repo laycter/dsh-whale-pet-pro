@@ -1,4 +1,4 @@
-# whale-pet-pro 🐳
+# dsh-whale-pet-pro 🐳
 
 > Windows 丝滑桌面宠物引擎（24fps 动画 + 行为 AI），DeepSeek Harness（DSH）插件。
 > 基于 [dsh-desktop-pet](https://github.com/)（MIT）二次开发。
@@ -59,7 +59,7 @@
 ## 目录结构
 
 ```text
-whale-pet-pro/
+dsh-whale-pet-pro/
 ├── src/
 │   ├── renderer/            # 渲染层
 │   │   ├── AnimationController.ts  # 帧调度（24fps，双模式）
