@@ -303,8 +303,9 @@ BoringPet 是 DeskPet 作者 @2048Nemo 的素材（GPL-3.0，见[鸣谢](#鸣谢
   1778 帧 + 14 音效），[DeskPet](https://github.com/2048Nemo/DeskPet) 项目作者。
   其素材的动作语义与音效策略直接启发了本项目的语义映射设计。详见
   [CREDITS.md](CREDITS.md)。
-- **[dsh-desktop-pet](https://github.com/)**：本项目 fork 基础（MIT），保留了其
+- **[@xiaoshihou514][dsh-desktop-pet](https://github.com/)**：本项目 fork 基础（MIT），保留了其
   Win32 窗口后端与 DSH 事件映射。
+  感谢两位原作者的付出。
 
 ## 许可
 
