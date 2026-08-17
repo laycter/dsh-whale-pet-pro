@@ -8,9 +8,9 @@
   "types": "lib/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/laycter/whale-pet-pro.git"
+    "url": "https://github.com/laycter/dsh-whale-pet-pro.git"
   },
-  "homepage": "https://github.com/laycter/whale-pet-pro#readme",
+  "homepage": "https://github.com/laycter/dsh-whale-pet-pro#readme",
   "keywords": [
     "deepseek-harness",
     "dsh",
